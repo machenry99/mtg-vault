@@ -8,7 +8,7 @@ A locally-hosted Magic: The Gathering collection manager built with Node.js and 
 ## Features
 - Browse your full card collection with Scryfall card images and live prices
 - Paginated card grid (20 cards per page)
-- Search any card on Scryfall and add it to your collection
+- Search any card on Scryfall and add it to your collection (currently here)
 - Collection stored as a simple JSON file you own and control
 
 ## Tech Stack
