@@ -140,3 +140,4 @@ vite.config.ts.timestamp-*
 
 # CSV exports
 data/*.csv
+data/scryfall_cache.json
