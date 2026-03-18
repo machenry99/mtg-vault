@@ -139,10 +139,68 @@
       padding: 40px;
       font-size: 1.1rem;
     }
+  #search-bar {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+#search-input {
+  width: 340px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #444;
+  background: #16213e;
+  color: #eee;
+  font-size: 0.9rem;
+}
+
+#search-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 24px;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.search-card {
+  background: #16213e;
+  border-radius: 8px;
+  overflow: hidden;
+  width: 180px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.search-card:hover { border-color: #c89b3c; }
+
+.search-card img { width: 100%; display: block; }
+
+.search-card-info {
+  padding: 6px 8px;
+  font-size: 0.75rem;
+}
+
+.add-btn {
+  width: 100%;
+  margin-top: 4px;
+  padding: 4px;
+  font-size: 0.75rem;
+}
   </style>
 </head>
 <body>
-  <h1>⚔️ MTG Vault</h1>
+<h1>⚔️ MTG Vault</h1>
+  <div id="search-bar">
+    <input type="text" id="search-input" placeholder="Search for a card to add..." />
+    <button id="search-btn">Search</button>
+  </div>
+  <div id="search-results"></div>
   <div id="stats">Loading collection...</div>
   <div id="loading">Fetching cards from Scryfall...</div>
   <div id="card-grid"></div>
@@ -218,6 +276,57 @@
 
     // Load first page on startup
     loadPage(0);
+  // Search functionality
+    document.getElementById('search-btn').addEventListener('click', searchCards);
+    document.getElementById('search-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') searchCards();
+    });
+
+    async function searchCards() {
+      const query = document.getElementById('search-input').value.trim();
+      if (!query) return;
+
+      const resultsDiv = document.getElementById('search-results');
+      resultsDiv.innerHTML = '<p style="color:#888;text-align:center;width:100%">Searching...</p>';
+
+      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+
+      if (!data.cards.length) {
+        resultsDiv.innerHTML = '<p style="color:#888;text-align:center;width:100%">No cards found.</p>';
+        return;
+      }
+
+      resultsDiv.innerHTML = '';
+      data.cards.slice(0, 8).forEach(card => {
+        const div = document.createElement('div');
+        div.className = 'search-card';
+        const price = parseFloat(card.price) > 0 ? `$${card.price}` : 'No price';
+        div.innerHTML = `
+          ${card.image ? `<img src="${card.image}" alt="${card.name}">` : `<div class="no-image">${card.name}</div>`}
+          <div class="search-card-info">
+            <div class="card-name">${card.name}</div>
+            <div class="card-set">${card.set}</div>
+            <div class="card-price">${price}</div>
+            <button class="add-btn" onclick="addCard('${card.id}', '${card.name.replace(/'/g, "\\'")}', '${card.set.replace(/'/g, "\\'")}')">+ Add to Collection</button>
+          </div>
+        `;
+        resultsDiv.appendChild(div);
+      });
+    }
+
+    async function addCard(scryfallId, name, edition) {
+      const res = await fetch('/api/collection/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scryfallId, name, edition, quantity: 1 })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`Added ${name} to your collection! Total: ${data.total} cards.`);
+        loadPage(currentPage);
+      }
+    }
   </script>
 </body>
 </html>
