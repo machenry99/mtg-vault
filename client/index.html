@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MTG Vault</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1a1a2e;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #c89b3c;
+      margin-bottom: 8px;
+      font-size: 2rem;
+    }
+
+    #stats {
+      text-align: center;
+      color: #888;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+    }
+
+    #card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #16213e;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: transform 0.2s;
+      cursor: pointer;
+    }
+
+    .card:hover { transform: translateY(-4px); }
+
+    .card img {
+      width: 100%;
+      display: block;
+    }
+
+    .card-info {
+      padding: 8px;
+    }
+
+    .card-name {
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: #ddd;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-set {
+      font-size: 0.7rem;
+      color: #888;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-price {
+      font-size: 0.8rem;
+      color: #c89b3c;
+      font-weight: bold;
+    }
+
+    .card-qty {
+      font-size: 0.7rem;
+      color: #888;
+    }
+
+    .no-image {
+      width: 100%;
+      aspect-ratio: 488/680;
+      background: #0f3460;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #444;
+      font-size: 0.75rem;
+      text-align: center;
+      padding: 8px;
+    }
+
+    #pagination {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    button {
+      background: #c89b3c;
+      color: #1a1a2e;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    button:disabled {
+      background: #444;
+      color: #888;
+      cursor: not-allowed;
+    }
+
+    #page-info { 
+      color: #888; 
+      line-height: 2; 
+    }
+
+    #loading {
+      text-align: center;
+      color: #888;
+      padding: 40px;
+      font-size: 1.1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>⚔️ MTG Vault</h1>
+  <div id="stats">Loading collection...</div>
+  <div id="loading">Fetching cards from Scryfall...</div>
+  <div id="card-grid"></div>
+  <div id="pagination" style="display:none">
+    <button id="prev-btn" disabled>← Prev</button>
+    <span id="page-info"></span>
+    <button id="next-btn">Next →</button>
+  </div>
+
+  <script>
+    let currentPage = 0;
+    let totalCards = 0;
+    const pageSize = 20;
+
+    async function loadPage(page) {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('card-grid').innerHTML = '';
+      document.getElementById('pagination').style.display = 'none';
+
+      const res = await fetch(`/api/collection?page=${page}`);
+      const data = await res.json();
+
+      totalCards = data.total;
+      currentPage = data.page;
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('stats').textContent =
+        `${totalCards} cards in collection`;
+
+      const grid = document.getElementById('card-grid');
+      data.cards.forEach(card => {
+        const div = document.createElement('div');
+        div.className = 'card';
+
+        const imageHtml = card.image
+          ? `<img src="${card.image}" alt="${card.name}" loading="lazy">`
+          : `<div class="no-image">${card.name}</div>`;
+
+        const price = parseFloat(card.price) > 0
+          ? `$${card.price}`
+          : 'No price';
+
+        div.innerHTML = `
+          ${imageHtml}
+          <div class="card-info">
+            <div class="card-name">${card.name}</div>
+            <div class="card-set">${card.set || ''}</div>
+            <div class="card-footer">
+              <span class="card-price">${price}</span>
+              <span class="card-qty">x${card.quantity}</span>
+            </div>
+          </div>
+        `;
+        grid.appendChild(div);
+      });
+
+      const totalPages = Math.ceil(totalCards / pageSize);
+      document.getElementById('page-info').textContent =
+        `Page ${currentPage + 1} of ${totalPages}`;
+      document.getElementById('prev-btn').disabled = currentPage === 0;
+      document.getElementById('next-btn').disabled =
+        currentPage >= totalPages - 1;
+      document.getElementById('pagination').style.display = 'flex';
+    }
+
+    document.getElementById('prev-btn').addEventListener('click', () => {
+      if (currentPage > 0) loadPage(currentPage - 1);
+    });
+
+    document.getElementById('next-btn').addEventListener('click', () => {
+      loadPage(currentPage + 1);
+    });
+
+    // Load first page on startup
+    loadPage(0);
+  </script>
+</body>
+</html>

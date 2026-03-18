@@ -6,7 +6,7 @@ const { fetchCard } = require('./scryfall');
 const app = express();
 const PORT = 3001;
 
-app.use(express.json());
+app.use(express.json());app.use(express.static(path.join(__dirname, '../client')));
 
 // Load collection from JSON
 function getCollection() {
@@ -30,7 +30,7 @@ app.get('/api/collection', async (req, res) => {
       slice.map(async (entry) => {
         try {
           const scryfallData = await fetchCard(entry.scryfallId);
-          return { ...scryfallData, quantity: entry.quantity };
+          return { ...scryfallData, quantity: entry.quantity, edition: entry.edition, condition: entry.condition, foil: entry.foil, language: entry.language };
         } catch (e) {
           return { ...entry, image: null, price: '0.00' };
         }
